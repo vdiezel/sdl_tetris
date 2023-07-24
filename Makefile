@@ -1,6 +1,6 @@
 CC := gcc
 
-CFlags := -Wall -std=c99
+CFlags := -Wall -std=c99 -lSDL2
 
 SRC_DIR := ./src
 
