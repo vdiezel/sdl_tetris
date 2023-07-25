@@ -26,6 +26,13 @@ int rotation_offsets[4][4][2] = {
   { {1, -1}, {0, 0}, {-1, 1}, {1, 1} },
 };
 
+typedef enum {
+  LEFT,
+  RIGHT,
+  SOFT_DROP,
+  ROTATE,
+} Movement;
+
 struct PIECE_T {
   int shapes[4][3][3];
 };
@@ -252,21 +259,6 @@ void apply_new_position(int new_piece_position[4][2]) {
   }
 }
 
-void moveLateral(int dir) {
-  if (!has_piece) return;
-
-  int piece_copy[4][2];
-  copy_piece(piece_copy);
-
-  for (int i = 0; i < 4; i++) {
-    piece_copy[i][1] = curr_piece[i][1] + dir;
-  }
-
-  if (is_valid_position(piece_copy)) {
-    apply_new_position(piece_copy);
-  }
-}
-
 void remove_row(int row_idx) {
   for (int i = (row_idx - 1); i >= 0; i--) {
     for (int j = 0; j < FIELD_COLUMNS; j++) {
@@ -309,42 +301,42 @@ void reset_current_piece() {
       curr_piece[i][j] = -1;
     }
   }
-  has_piece = FALSE;
   curr_rot = 0;
+  has_piece = FALSE;
 }
 
-void soft_drop() {
+void move(Movement move) {
   if (!has_piece) return;
 
   int piece_copy[4][2];
   copy_piece(piece_copy);
 
   for (int i = 0; i < 4; i++) {
-    piece_copy[i][0] = curr_piece[i][0] + 1;
+    switch (move) {
+      case LEFT:
+        piece_copy[i][1] = curr_piece[i][1] - 1;
+        break;
+      case RIGHT:
+        piece_copy[i][1] = curr_piece[i][1] + 1;
+        break;
+      case SOFT_DROP:
+        piece_copy[i][0] = curr_piece[i][0] + 1;
+        break;
+      case ROTATE:
+        piece_copy[i][0] = curr_piece[i][0] + rotation_offsets[curr_rot][i][0];
+        piece_copy[i][1] = curr_piece[i][1] + rotation_offsets[curr_rot][i][1];
+        break;
+    }
   }
 
   if (is_valid_position(piece_copy)) {
     apply_new_position(piece_copy);
-  } else {
+    if (move == ROTATE) {
+      curr_rot = (curr_rot + 1) % 4;
+    }
+  } else if (move == SOFT_DROP) {
     merge_piece();
     reset_current_piece();
-  }
-}
-
-void rotate_cw() {
-  if (!has_piece) return;
-
-  int piece_copy[4][2];
-  copy_piece(piece_copy);
-
-  for (int i = 0; i < 4; i++) {
-    piece_copy[i][0] = curr_piece[i][0] + rotation_offsets[curr_rot][i][0];
-    piece_copy[i][1] = curr_piece[i][1] + rotation_offsets[curr_rot][i][1];
-  }
-
-  if (is_valid_position(piece_copy)) {
-    apply_new_position(piece_copy);
-    curr_rot = (curr_rot + 1) % 4;
   }
 }
 
@@ -354,16 +346,16 @@ void handle_key_down(SDL_Event event) {
       game_is_running = FALSE;
       break;
     case SDLK_a:
-      moveLateral(-1);
+      move(LEFT);
       break;
     case SDLK_d:
-      moveLateral(1);
+      move(RIGHT);
       break;
     case SDLK_w:
-      rotate_cw();
+      move(ROTATE);
       break;
     case SDLK_s:
-      soft_drop();
+      move(SOFT_DROP);
       break;
   }
 }
@@ -408,7 +400,7 @@ void spawn_piece() {
 
 void apply_gravity() {
   if (!has_piece) return;
-  soft_drop();
+  move(SOFT_DROP);
 
   last_gravity = SDL_GetTicks();
 }
