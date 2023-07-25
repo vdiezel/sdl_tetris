@@ -27,7 +27,7 @@ typedef enum {
   ROTATE,
 } Movement;
 
-int initialize_window(void) {
+int initialize_window() {
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
     fprintf(stderr, "Error initializinh SDL.\n");
     return FALSE;

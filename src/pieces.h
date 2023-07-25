@@ -19,6 +19,7 @@ struct Piece {
   // the rotation offsets contain the offsets for every tile
   // when rotating counter clockwise according to
   // https://tetris.wiki/Original_Rotation_System
+  // the indexes match the tile indexes in curr_piece (row-major traversing)
   int rotation_offsets[4][4][2];
   PieceType type;
 };
