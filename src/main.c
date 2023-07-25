@@ -5,6 +5,7 @@
 #include "./pieces.h"
 
 int CAP_FRAME_RATE = TRUE;
+int SHOW_GHOST = TRUE;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -309,6 +310,35 @@ void renderField() {
       int col_idx = tile[1];
 
       render_field_block(row_idx, col_idx);
+    }
+
+    // render the ghost
+    if (SHOW_GHOST) {
+      SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+
+      int max_distance = 0;
+
+      for (int i = 0; i < 4; i++) {
+        int *tile = curr_piece[i];
+        int row_idx = tile[0];
+        int col_idx = tile[1];
+        int curr_max_idx = row_idx + 1;
+
+        while (curr_max_idx < (FIELD_ROWS - 1) && !field[curr_max_idx][col_idx]) {
+          curr_max_idx++;
+        }
+
+        if (curr_max_idx - row_idx > max_distance) {
+          max_distance = curr_max_idx - row_idx;
+        }
+      }
+
+      for (int i = 0; i < 4; i++) {
+        int *tile = curr_piece[i];
+        int row_idx = tile[0];
+        int col_idx = tile[1];
+        render_field_block(row_idx + max_distance, col_idx);
+      }
     }
   }
 }
