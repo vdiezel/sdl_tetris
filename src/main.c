@@ -13,30 +13,176 @@ int has_piece = FALSE;
 int last_frame_time = 0;
 int field[FIELD_ROWS][FIELD_COLUMNS];
 
+// this holds the field indexes if the tiles of the current piece
 int curr_piece[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
+int piece_type = -1;
 int last_gravity = 0;
 
-int PIECE_T[4][3][3] = {
-  {
-    {0, 0, 0},
-    {1, 1, 1},
-    {0, 1, 0},
+int curr_rot = 0;
+int rotation_offsets[4][4][2] = {
+  { {1, 1}, {0, 0}, {-1, -1}, {-1, 1} },
+  { {-1, 1}, {0, 0}, {1, -1}, {-1, -1} },
+  { {-1, -1}, {0, 0}, {1, 1}, {1, -1} },
+  { {1, -1}, {0, 0}, {-1, 1}, {1, 1} },
+};
+
+struct PIECE_T {
+  int shapes[4][3][3];
+};
+
+struct PIECE_T piece_t = {
+  .shapes = {
+    {
+      {0, 0, 0},
+      {1, 1, 1},
+      {0, 1, 0},
+    },
+    {
+      {0, 1, 0},
+      {0, 1, 1},
+      {0, 1, 0},
+    },
+    {
+      {0, 1, 0},
+      {1, 1, 1},
+      {0, 0, 0},
+    },
+    {
+      {0, 1, 0},
+      {1, 1, 0},
+      {0, 1, 0},
+    },
+  }
+};
+
+struct PIECE_L {
+  int shapes[4][3][3];
+};
+
+struct PIECE_L piece_l = {
+  .shapes = {
+    {
+      {0, 0, 0},
+      {1, 1, 1},
+      {1, 0, 0},
+    },
+    {
+      {0, 1, 0},
+      {0, 1, 0},
+      {0, 1, 1},
+    },
+    {
+      {0, 0, 1},
+      {1, 1, 1},
+      {0, 0, 0},
+    },
+    {
+      {1, 1, 0},
+      {0, 1, 0},
+      {0, 1, 0},
+    },
   },
-  {
-    {0, 1, 0},
-    {0, 1, 1},
-    {0, 1, 0},
+};
+
+struct PIECE_J {
+  int shapes[4][3][3];
+};
+
+struct PIECE_J piece_j = {
+  .shapes = {
+    {
+      {0, 0, 0},
+      {1, 1, 1},
+      {0, 0, 1},
+    },
+    {
+      {0, 1, 1},
+      {0, 1, 0},
+      {0, 1, 0},
+    },
+    {
+      {1, 0, 0},
+      {1, 1, 1},
+      {0, 0, 0},
+    },
+    {
+      {0, 1, 0},
+      {0, 1, 0},
+      {1, 1, 0},
+    },
+  }
+};
+
+struct PIECE_S {
+  int shapes[2][3][3];
+};
+
+struct PIECE_S piece_s = {
+  .shapes = {
+    {
+      {0, 0, 0},
+      {0, 1, 1},
+      {1, 1, 0},
+    },
+    {
+      {0, 1, 0},
+      {0, 1, 1},
+      {0, 0, 1},
+    },
+  }
+};
+
+struct PIECE_Z {
+  int shapes[2][3][3];
+};
+
+struct PIECE_Z piece_z = {
+  .shapes = {
+    {
+      {0, 0, 0},
+      {1, 1, 0},
+      {0, 1, 1},
+    },
+    {
+      {0, 0, 1},
+      {0, 1, 1},
+      {0, 1, 0},
+    },
+  }
+};
+
+struct PIECE_O {
+  int shapes[1][2][2];
+};
+
+struct PIECE_O piece_o = {
+  .shapes = {
+    {
+      {1, 1},
+      {1, 1},
+    },
   },
-  {
-    {0, 1, 0},
-    {1, 1, 1},
-    {0, 0, 0},
-  },
-  {
-    {0, 1, 0},
-    {1, 1, 0},
-    {0, 1, 0},
-  },
+};
+
+struct PIECE_I {
+  int shapes[2][4][4];
+};
+
+struct PIECE_I piece_i = {
+  .shapes = {
+    {
+      {0, 0, 0, 0},
+      {1, 1, 1, 1},
+      {0, 0, 0, 0},
+      {0, 0, 0, 0},
+    },
+    {
+      {0, 0, 1, 0},
+      {0, 0, 1, 0},
+      {0, 0, 1, 0},
+      {0, 0, 1, 0},
+    },
+  }
 };
 
 int initialize_window(void) {
@@ -77,32 +223,128 @@ void setup() {
   }
 }
 
-int valid_move(int row_dir, int col_dir) {
+int is_valid_position(int new_piece_position[4][2]) {
   for (int i = 0; i < 4; i++) {
-    int row_idx = curr_piece[i][0];
-    if (row_dir == 1 && row_idx >= (FIELD_ROWS - 1)) return FALSE;
+    int row_idx = new_piece_position[i][0];
+    if (row_idx >= FIELD_ROWS) return FALSE;
 
-    int col_idx = curr_piece[i][1];
-    if (col_dir == 1 && col_idx >= (FIELD_COLUMNS - 1)) return FALSE;
-    if (col_dir == -1 && col_idx <= 0) return FALSE;
+    int col_idx = new_piece_position[i][1];
+    if (col_idx >= FIELD_COLUMNS) return FALSE;
+    if (col_idx < 0) return FALSE;
+
+    if (field[row_idx][col_idx]) return FALSE;
   }
 
   return TRUE;
 }
 
+void copy_piece(int dest[4][2]) {
+  for (int i = 0; i < 4; i++) {
+    dest[i][0] = curr_piece[i][0];
+    dest[i][1] = curr_piece[i][1];
+  }
+}
+
+void apply_new_position(int new_piece_position[4][2]) {
+  for (int i = 0; i < 4; i++) {
+    curr_piece[i][0] = new_piece_position[i][0];
+    curr_piece[i][1] = new_piece_position[i][1];
+  }
+}
+
 void moveLateral(int dir) {
-  if (has_piece && valid_move(0, dir)) {
-    for (int i = 0; i < 4; i++) {
-      curr_piece[i][1] = curr_piece[i][1] + dir;
+  if (!has_piece) return;
+
+  int piece_copy[4][2];
+  copy_piece(piece_copy);
+
+  for (int i = 0; i < 4; i++) {
+    piece_copy[i][1] = curr_piece[i][1] + dir;
+  }
+
+  if (is_valid_position(piece_copy)) {
+    apply_new_position(piece_copy);
+  }
+}
+
+void remove_row(int row_idx) {
+  for (int i = (row_idx - 1); i >= 0; i--) {
+    for (int j = 0; j < FIELD_COLUMNS; j++) {
+      field[i + 1][j] = field[i][j];
+    }
+  }
+
+  for (int j = 0; j < FIELD_COLUMNS; j++) {
+    field[0][j] = 0;
+  }
+}
+
+void remove_complete_rows() {
+  for (int i = 0; i < FIELD_ROWS; i++) {
+    int is_complete = TRUE;
+
+    for (int j = 0; j < FIELD_COLUMNS; j++) {
+      if (!field[i][j]) is_complete = FALSE;
+    }
+
+    if (is_complete) {
+      remove_row(i);
     }
   }
 }
 
-void soft_drop() {
-  if (has_piece && valid_move(-1, 0)) {
-    for (int i = 0; i < 4; i++) {
-      curr_piece[i][0] = curr_piece[i][0] + 1;
+void merge_piece() {
+  for (int i = 0; i < 4; i++) {
+    int row_idx = curr_piece[i][0];
+    int col_idx = curr_piece[i][1];
+    field[row_idx][col_idx] = 1;
+  }
+
+  remove_complete_rows();
+}
+
+void reset_current_piece() {
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 2; j++) {
+      curr_piece[i][j] = -1;
     }
+  }
+  has_piece = FALSE;
+  curr_rot = 0;
+}
+
+void soft_drop() {
+  if (!has_piece) return;
+
+  int piece_copy[4][2];
+  copy_piece(piece_copy);
+
+  for (int i = 0; i < 4; i++) {
+    piece_copy[i][0] = curr_piece[i][0] + 1;
+  }
+
+  if (is_valid_position(piece_copy)) {
+    apply_new_position(piece_copy);
+  } else {
+    merge_piece();
+    reset_current_piece();
+  }
+}
+
+void rotate_cw() {
+  if (!has_piece) return;
+
+  int piece_copy[4][2];
+  copy_piece(piece_copy);
+
+  for (int i = 0; i < 4; i++) {
+    piece_copy[i][0] = curr_piece[i][0] + rotation_offsets[curr_rot][i][0];
+    piece_copy[i][1] = curr_piece[i][1] + rotation_offsets[curr_rot][i][1];
+  }
+
+  if (is_valid_position(piece_copy)) {
+    apply_new_position(piece_copy);
+    curr_rot = (curr_rot + 1) % 4;
   }
 }
 
@@ -116,6 +358,9 @@ void handle_key_down(SDL_Event event) {
       break;
     case SDLK_d:
       moveLateral(1);
+      break;
+    case SDLK_w:
+      rotate_cw();
       break;
     case SDLK_s:
       soft_drop();
@@ -143,7 +388,7 @@ void spawn_piece() {
   for (int m = 0; m < 3; m++) {
     for (int n = 0; n < 3; n++) {
       int field_block = field[m][n + 4];
-      int piece_block = PIECE_T[0][m][n];
+      int piece_block = piece_t.shapes[0][m][n];
 
       if (piece_block && field_block) {
         // game over
@@ -161,34 +406,9 @@ void spawn_piece() {
   has_piece = TRUE;
 }
 
-void merge_piece() {
-  for (int i = 0; i < 4; i++) {
-    int row_idx = curr_piece[i][0];
-    int col_idx = curr_piece[i][1];
-    field[row_idx][col_idx] = 1;
-  }
-}
-
-void reset_current_piece() {
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 2; j++) {
-      curr_piece[i][j] = -1;
-    }
-  }
-  has_piece = FALSE;
-}
-
 void apply_gravity() {
   if (!has_piece) return;
-
-  if (valid_move(1, 0)) {
-    for (int i = 0; i < 4; i++) {
-      curr_piece[i][0] = curr_piece[i][0] + 1;
-    }
-  } else {
-    merge_piece();
-    reset_current_piece();
-  }
+  soft_drop();
 
   last_gravity = SDL_GetTicks();
 }
@@ -217,7 +437,7 @@ void update() {
   last_frame_time = SDL_GetTicks();
 }
 
-void renderFieldBlock(int row, int col) {
+void render_field_block(int row, int col) {
   SDL_Rect block = {
     FIELD_ORIGIN_X + col * BLOCK_WIDTH,
     FIELD_ORIGIN_Y + row  * BLOCK_WIDTH,
@@ -244,7 +464,7 @@ void renderField() {
       int has_block = field[i][j];
 
       if (has_block) {
-        renderFieldBlock(i, j);
+        render_field_block(i, j);
       }
     }
   }
@@ -255,7 +475,7 @@ void renderField() {
       int row_idx = tile[0];
       int col_idx = tile[1];
 
-      renderFieldBlock(row_idx, col_idx);
+      render_field_block(row_idx, col_idx);
     }
   }
 }
