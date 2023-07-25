@@ -22,6 +22,11 @@ typedef enum {
   T,
   L,
   J,
+  S,
+  Z,
+  O,
+  I,
+  NUM_PIECE_TYPES,
 } PieceType;
 
 PieceType piece_type = T;
@@ -88,76 +93,68 @@ const static struct Piece piece_j = {
   .type = J,
 };
 
-struct PIECE_S {
-  int shapes[2][3][3];
-};
-
-struct PIECE_S piece_s = {
-  .shapes = {
-    {
-      {0, 0, 0},
-      {0, 1, 1},
-      {1, 1, 0},
-    },
-    {
-      {0, 1, 0},
-      {0, 1, 1},
-      {0, 0, 1},
-    },
-  }
-};
-
-struct PIECE_Z {
-  int shapes[2][3][3];
-};
-
-struct PIECE_Z piece_z = {
-  .shapes = {
-    {
-      {0, 0, 0},
-      {1, 1, 0},
-      {0, 1, 1},
-    },
-    {
-      {0, 0, 1},
-      {0, 1, 1},
-      {0, 1, 0},
-    },
-  }
-};
-
-struct PIECE_O {
-  int shapes[1][2][2];
-};
-
-struct PIECE_O piece_o = {
-  .shapes = {
-    {
-      {1, 1},
-      {1, 1},
-    },
+const static struct Piece piece_s = {
+  .shape = {
+    {0, 0, 0, 0},
+    {0, 1, 1, 0},
+    {1, 1, 0, 0},
+    {0, 0, 0, 0},
   },
+  .rotation_offsets = {
+    { {0, 0}, {-1, -1}, {0, 2}, {-1, 1} },
+    { {0, 0}, {1, 1}, {0, -2}, {1, -1} },
+    { {0, 0}, {-1, -1}, {0, 2}, {-1, 1} },
+    { {0, 0}, {1, 1}, {0, -2}, {1, -1} },
+  },
+  .type = S,
 };
 
-struct PIECE_I {
-  int shapes[2][4][4];
+const static struct Piece piece_z = {
+  .shape = {
+    {0, 0, 0, 0},
+    {1, 1, 0, 0},
+    {0, 1, 1, 0},
+    {0, 0, 0, 0},
+  },
+  .rotation_offsets = {
+    { {1, 1}, {0, 0}, {-1, 1}, {-2, 0} },
+    { {-1, -1}, {0, 0}, {1, -1}, {2, 0} },
+    { {1, 1}, {0, 0}, {-1, 1}, {-2, 0} },
+    { {-1, -1}, {0, 0}, {1, -1}, {2, 0} },
+  },
+  .type = Z,
 };
 
-struct PIECE_I piece_i = {
-  .shapes = {
-    {
-      {0, 0, 0, 0},
-      {1, 1, 1, 1},
-      {0, 0, 0, 0},
-      {0, 0, 0, 0},
-    },
-    {
-      {0, 0, 1, 0},
-      {0, 0, 1, 0},
-      {0, 0, 1, 0},
-      {0, 0, 1, 0},
-    },
-  }
+const static struct Piece piece_o = {
+  .shape = {
+    {0, 0, 0, 0},
+    {0, 1, 1, 0},
+    {0, 1, 1, 0},
+    {0, 0, 0, 0},
+  },
+  .rotation_offsets = {
+    { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
+    { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
+    { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
+    { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
+  },
+  .type = O,
+};
+
+const static struct Piece piece_i = {
+  .shape = {
+    {0, 0, 0, 0},
+    {1, 1, 1, 1},
+    {0, 0, 0, 0},
+    {0, 0, 0, 0},
+  },
+  .rotation_offsets = {
+    { {2, 2}, {1, 1}, {0, 0}, {-1, -1} },
+    { {-2, -2}, {-1, -1}, {0, 0}, {1, 1} },
+    { {2, 2}, {1, 1}, {0, 0}, {-1, -1} },
+    { {-2, -2}, {-1, -1}, {0, 0}, {1, 1} },
+  },
+  .type = I,
 };
 
 int initialize_window(void) {
@@ -191,15 +188,23 @@ int initialize_window(void) {
 }
 
 // my poor man's polymorphism
-const struct Piece* get_piece(PieceType type) {
+const struct Piece* get_piece() {
 
-  switch (type) {
+  switch (piece_type) {
     case T:
       return &piece_t;
     case L:
       return &piece_l;
     case J:
       return &piece_j;
+    case S:
+      return &piece_s;
+    case Z:
+      return &piece_z;
+    case O:
+      return &piece_o;
+    case I:
+      return &piece_i;
     default:
       return &piece_t;
   }
@@ -207,12 +212,12 @@ const struct Piece* get_piece(PieceType type) {
 }
 
 const int (*get_shape())[4] {
-  const struct Piece* piece = get_piece(piece_type);
+  const struct Piece* piece = get_piece();
   return piece->shape;
 }
 
 const int (*get_rotation_offsets())[4][2] {
-  const struct Piece* piece = get_piece(piece_type);
+  const struct Piece* piece = get_piece();
   return piece->rotation_offsets;
 }
 
@@ -375,12 +380,12 @@ void spawn_piece() {
   int tile_counter = 0;
 
   srand((unsigned int)(SDL_GetTicks() / 1000));
-  piece_type = rand() % 3;
+  piece_type = rand() % NUM_PIECE_TYPES;
 
   const int (*piece_shape)[4] = get_shape();
 
-  for (int m = 0; m < 3; m++) {
-    for (int n = 0; n < 3; n++) {
+  for (int m = 0; m < 4; m++) {
+    for (int n = 0; n < 4; n++) {
       int field_block = field[m][n + 4];
       int piece_block = piece_shape[m][n];
 
