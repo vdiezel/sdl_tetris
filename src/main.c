@@ -385,6 +385,7 @@ void spawn_piece() {
       int piece_block = piece_shape[m][n];
 
       if (piece_block && field_block) {
+        game_is_running = FALSE;
         return;
       }
 
