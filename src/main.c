@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
 #include "./constants.h"
+#include "./pieces.h"
 
 int CAP_FRAME_RATE = TRUE;
 
@@ -17,18 +18,6 @@ int field[FIELD_ROWS][FIELD_COLUMNS];
 int curr_piece[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 int last_gravity = 0;
 int curr_rot = 0;
-
-typedef enum {
-  T,
-  L,
-  J,
-  S,
-  Z,
-  O,
-  I,
-  NUM_PIECE_TYPES,
-} PieceType;
-
 PieceType piece_type = T;
 
 typedef enum {
@@ -37,125 +26,6 @@ typedef enum {
   SOFT_DROP,
   ROTATE,
 } Movement;
-
-struct Piece {
-  int shape[4][4];
-  int shape_size;
-  int rotation_offsets[4][4][2];
-  PieceType type;
-};
-
-const static struct Piece piece_t = {
-  .shape = {
-    {0, 0, 0, 0},
-    {1, 1, 1, 0},
-    {0, 1, 0, 0},
-    {0, 0, 0, 0},
-  },
-  .rotation_offsets = {
-    { {1, 1}, {0, 0}, {-1, -1}, {-1, 1} },
-    { {-1, 1}, {0, 0}, {1, -1}, {-1, -1} },
-    { {-1, -1}, {0, 0}, {1, 1}, {1, -1} },
-    { {1, -1}, {0, 0}, {-1, 1}, {1, 1} },
-  },
-  .type = T,
-};
-
-const static struct Piece piece_l = {
-  .shape = {
-    {0, 0, 0, 0},
-    {1, 1, 1, 0},
-    {1, 0, 0, 0},
-    {0, 0, 0, 0},
-  },
-  .rotation_offsets = {
-    { {1, 1}, {0, 0}, {-1, -1}, {0, 2} },
-    { {-1, 1}, {0, 0}, {1, -1}, {-2, 0} },
-    { {-1, -1}, {0, 0}, {1, 1}, {0, -2} },
-    { {1, -1}, {0, 0}, {-1, 1}, {2, 0} },
-  },
-  .type = L,
-};
-
-const static struct Piece piece_j = {
-  .shape = {
-    {0, 0, 0, 0},
-    {1, 1, 1, 0},
-    {0, 0, 1, 0},
-    {0, 0, 0, 0},
-  },
-  .rotation_offsets = {
-    { {1, 1}, {0, 0}, {-1, -1}, {-2, 0} },
-    { {-1, 1}, {0, 0}, {1, -1}, {0, -2} },
-    { {-1, -1}, {0, 0}, {1, 1}, {2, 0} },
-    { {1, -1}, {0, 0}, {-1, 1}, {0, 2} },
-  },
-  .type = J,
-};
-
-const static struct Piece piece_s = {
-  .shape = {
-    {0, 0, 0, 0},
-    {0, 1, 1, 0},
-    {1, 1, 0, 0},
-    {0, 0, 0, 0},
-  },
-  .rotation_offsets = {
-    { {0, 0}, {-1, -1}, {0, 2}, {-1, 1} },
-    { {0, 0}, {1, 1}, {0, -2}, {1, -1} },
-    { {0, 0}, {-1, -1}, {0, 2}, {-1, 1} },
-    { {0, 0}, {1, 1}, {0, -2}, {1, -1} },
-  },
-  .type = S,
-};
-
-const static struct Piece piece_z = {
-  .shape = {
-    {0, 0, 0, 0},
-    {1, 1, 0, 0},
-    {0, 1, 1, 0},
-    {0, 0, 0, 0},
-  },
-  .rotation_offsets = {
-    { {1, 1}, {0, 0}, {-1, 1}, {-2, 0} },
-    { {-1, -1}, {0, 0}, {1, -1}, {2, 0} },
-    { {1, 1}, {0, 0}, {-1, 1}, {-2, 0} },
-    { {-1, -1}, {0, 0}, {1, -1}, {2, 0} },
-  },
-  .type = Z,
-};
-
-const static struct Piece piece_o = {
-  .shape = {
-    {0, 0, 0, 0},
-    {0, 1, 1, 0},
-    {0, 1, 1, 0},
-    {0, 0, 0, 0},
-  },
-  .rotation_offsets = {
-    { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
-    { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
-    { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
-    { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
-  },
-  .type = O,
-};
-
-const static struct Piece piece_i = {
-  .shape = {
-    {0, 0, 0, 0},
-    {1, 1, 1, 1},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-  },
-  .rotation_offsets = {
-    { {2, 2}, {1, 1}, {0, 0}, {-1, -1} },
-    { {-2, -2}, {-1, -1}, {0, 0}, {1, 1} },
-    { {2, 2}, {1, 1}, {0, 0}, {-1, -1} },
-    { {-2, -2}, {-1, -1}, {0, 0}, {1, 1} },
-  },
-  .type = I,
-};
 
 int initialize_window(void) {
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -186,41 +56,6 @@ int initialize_window(void) {
 
   return TRUE;
 }
-
-// my poor man's polymorphism
-const struct Piece* get_piece() {
-
-  switch (piece_type) {
-    case T:
-      return &piece_t;
-    case L:
-      return &piece_l;
-    case J:
-      return &piece_j;
-    case S:
-      return &piece_s;
-    case Z:
-      return &piece_z;
-    case O:
-      return &piece_o;
-    case I:
-      return &piece_i;
-    default:
-      return &piece_t;
-  }
-
-}
-
-const int (*get_shape())[4] {
-  const struct Piece* piece = get_piece();
-  return piece->shape;
-}
-
-const int (*get_rotation_offsets())[4][2] {
-  const struct Piece* piece = get_piece();
-  return piece->rotation_offsets;
-}
-
 
 void setup() {
   for (int i = 0; i < FIELD_ROWS; i++) {
@@ -323,7 +158,7 @@ void move(Movement move) {
         piece_copy[i][0] = curr_piece[i][0] + 1;
         break;
       case ROTATE: {
-        const int (*rotation_offsets)[4][2] = get_rotation_offsets();
+        const int (*rotation_offsets)[4][2] = get_rotation_offsets(piece_type);
         piece_copy[i][0] = curr_piece[i][0] + rotation_offsets[curr_rot][i][0];
         piece_copy[i][1] = curr_piece[i][1] + rotation_offsets[curr_rot][i][1];
         break;
@@ -382,7 +217,7 @@ void spawn_piece() {
   srand((unsigned int)(SDL_GetTicks() / 1000));
   piece_type = rand() % NUM_PIECE_TYPES;
 
-  const int (*piece_shape)[4] = get_shape();
+  const int (*piece_shape)[4] = get_shape(piece_type);
 
   for (int m = 0; m < 4; m++) {
     for (int n = 0; n < 4; n++) {
@@ -432,7 +267,6 @@ void update() {
     apply_gravity();
   }
 
-  //float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
   last_frame_time = SDL_GetTicks();
 }
 
