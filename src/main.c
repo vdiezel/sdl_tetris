@@ -15,16 +15,20 @@ int field[FIELD_ROWS][FIELD_COLUMNS];
 
 // this holds the field indexes if the tiles of the current piece
 int curr_piece[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
-int piece_type = -1;
 int last_gravity = 0;
-
 int curr_rot = 0;
-int rotation_offsets[4][4][2] = {
-  { {1, 1}, {0, 0}, {-1, -1}, {-1, 1} },
-  { {-1, 1}, {0, 0}, {1, -1}, {-1, -1} },
-  { {-1, -1}, {0, 0}, {1, 1}, {1, -1} },
-  { {1, -1}, {0, 0}, {-1, 1}, {1, 1} },
-};
+
+typedef enum {
+  T,
+  L,
+  J,
+  S,
+  Z,
+  O,
+  I,
+} PieceType;
+
+PieceType piece_type = T;
 
 typedef enum {
   LEFT,
@@ -33,63 +37,66 @@ typedef enum {
   ROTATE,
 } Movement;
 
-struct PIECE_T {
-  int shapes[4][3][3];
+struct Piece {
+  int shape[4][4];
+  int shape_size;
+  int rotation_offsets[4][4][2];
+  PieceType type;
 };
 
-struct PIECE_T piece_t = {
-  .shapes = {
-    {
-      {0, 0, 0},
-      {1, 1, 1},
-      {0, 1, 0},
-    },
-    {
-      {0, 1, 0},
-      {0, 1, 1},
-      {0, 1, 0},
-    },
-    {
-      {0, 1, 0},
-      {1, 1, 1},
-      {0, 0, 0},
-    },
-    {
-      {0, 1, 0},
-      {1, 1, 0},
-      {0, 1, 0},
-    },
-  }
-};
-
-struct PIECE_L {
-  int shapes[4][3][3];
-};
-
-struct PIECE_L piece_l = {
-  .shapes = {
-    {
-      {0, 0, 0},
-      {1, 1, 1},
-      {1, 0, 0},
-    },
-    {
-      {0, 1, 0},
-      {0, 1, 0},
-      {0, 1, 1},
-    },
-    {
-      {0, 0, 1},
-      {1, 1, 1},
-      {0, 0, 0},
-    },
-    {
-      {1, 1, 0},
-      {0, 1, 0},
-      {0, 1, 0},
-    },
+const static struct Piece piece_t = {
+  .shape = {
+    {0, 0, 0, 0},
+    {1, 1, 1, 0},
+    {0, 1, 0, 0},
+    {0, 0, 0, 0},
   },
+  .rotation_offsets = {
+    { {1, 1}, {0, 0}, {-1, -1}, {-1, 1} },
+    { {-1, 1}, {0, 0}, {1, -1}, {-1, -1} },
+    { {-1, -1}, {0, 0}, {1, 1}, {1, -1} },
+    { {1, -1}, {0, 0}, {-1, 1}, {1, 1} },
+  },
+  .type = T,
 };
+
+const static struct Piece piece_l = {
+  .shape = {
+    {0, 0, 0, 0},
+    {1, 1, 1, 0},
+    {1, 0, 0, 0},
+    {0, 0, 0, 0},
+  },
+  .rotation_offsets = {
+    { {1, 1}, {0, 0}, {-1, -1}, {0, 2} },
+    { {-1, 1}, {0, 0}, {1, -1}, {-2, 0} },
+    { {-1, -1}, {0, 0}, {1, 1}, {0, -2} },
+    { {1, -1}, {0, 0}, {-1, 1}, {2, 0} },
+  },
+  .type = L,
+};
+
+// my poor man's polymorphism
+const struct Piece* get_piece(PieceType type) {
+
+  switch (type) {
+    case T:
+      return &piece_t;
+    case L:
+      return &piece_l;
+  }
+
+}
+
+const int (*get_shape(PieceType type))[4] {
+  const struct Piece* piece = get_piece(type);
+  return piece->shape;
+}
+
+const int (*get_rotation_offsets(PieceType type))[4][2] {
+  const struct Piece* piece = get_piece(type);
+  return piece->rotation_offsets;
+}
 
 struct PIECE_J {
   int shapes[4][3][3];
@@ -322,10 +329,12 @@ void move(Movement move) {
       case SOFT_DROP:
         piece_copy[i][0] = curr_piece[i][0] + 1;
         break;
-      case ROTATE:
+      case ROTATE: {
+        const int (*rotation_offsets)[4][2] = get_rotation_offsets(L);
         piece_copy[i][0] = curr_piece[i][0] + rotation_offsets[curr_rot][i][0];
         piece_copy[i][1] = curr_piece[i][1] + rotation_offsets[curr_rot][i][1];
         break;
+      }
     }
   }
 
@@ -377,10 +386,12 @@ void process_inputs() {
 void spawn_piece() {
   int tile_counter = 0;
 
+  const int (*piece_shape)[4] = get_shape(L);
+
   for (int m = 0; m < 3; m++) {
     for (int n = 0; n < 3; n++) {
       int field_block = field[m][n + 4];
-      int piece_block = piece_t.shapes[0][m][n];
+      int piece_block = piece_shape[m][n];
 
       if (piece_block && field_block) {
         // game over
