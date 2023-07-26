@@ -20,6 +20,7 @@ int curr_piece[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 int last_gravity = 0;
 int curr_rot = 0;
 PieceType piece_type = T;
+PieceType next_piece_type = T;
 
 typedef enum {
   LEFT,
@@ -66,6 +67,12 @@ void setup() {
       field[i][j] = 0;
     }
   }
+
+  srand((unsigned int)(SDL_GetTicks() / 1000));
+  piece_type = rand() % NUM_PIECE_TYPES;
+
+  srand((unsigned int)(SDL_GetTicks() / 1000));
+  next_piece_type = rand() % NUM_PIECE_TYPES;
 }
 
 int is_valid_position(int new_piece_position[4][2]) {
@@ -217,8 +224,10 @@ void process_inputs() {
 void spawn_piece() {
   int tile_counter = 0;
 
+  piece_type = next_piece_type;
+
   srand((unsigned int)(SDL_GetTicks() / 1000));
-  piece_type = rand() % NUM_PIECE_TYPES;
+  next_piece_type = rand() % NUM_PIECE_TYPES;
 
   const int (*piece_shape)[4] = get_shape(piece_type);
 
@@ -328,6 +337,38 @@ void render_ghost() {
   }
 }
 
+void render_preview() {
+  SDL_Rect preview_frame = {
+    PREVIEW_ORIGIN_X,
+    PREVIEW_ORIGIN_Y,
+    PREVIEW_WIDTH,
+    PREVIEW_HEIGHT,
+  };
+
+  SDL_RenderDrawRect(renderer, &preview_frame);
+
+  const int (*piece_shape)[4] = get_shape(next_piece_type);
+
+  // in order to center all pieces, we need the bounding box of
+  // of the shape
+
+  for (int m = 0; m < 4; m++) {
+    for (int n = 0; n < 4; n++) {
+      int piece_block = piece_shape[m][n];
+
+      if (piece_block) {
+        SDL_Rect block = {
+          PREVIEW_ORIGIN_X + (n + 1) * BLOCK_WIDTH,
+          PREVIEW_ORIGIN_Y + (m + 1) * BLOCK_WIDTH,
+          BLOCK_WIDTH,
+          BLOCK_WIDTH,
+        };
+        SDL_RenderFillRect(renderer, &block);
+      }
+    }
+  }
+}
+
 void renderField() {
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
@@ -349,6 +390,8 @@ void renderField() {
       }
     }
   }
+
+  render_preview();
 
   if (has_piece) {
     render_piece();

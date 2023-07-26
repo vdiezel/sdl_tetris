@@ -22,6 +22,10 @@ struct Piece {
   // the indexes match the tile indexes in curr_piece (row-major traversing)
   int rotation_offsets[4][4][2];
   PieceType type;
+
+  // in order to center all pieces in the preview, we need the bounding box of
+  // of the shape within the 4x4 grid in the first position; the first index is the max width
+  // and the second the max height
 };
 
 const static struct Piece piece_t = {
