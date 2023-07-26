@@ -55,6 +55,8 @@ int initialize_window() {
     return FALSE;
   }
 
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
   return TRUE;
 }
 
@@ -281,6 +283,51 @@ void render_field_block(int row, int col) {
   SDL_RenderFillRect(renderer, &block);
 }
 
+void render_piece() {
+  for (int i = 0; i < 4; i++) {
+    int *tile = curr_piece[i];
+    int row_idx = tile[0];
+    int col_idx = tile[1];
+
+    render_field_block(row_idx, col_idx);
+  }
+}
+
+int get_vertical_space(int row_idx, int col_idx) {
+  int curr_idx = row_idx;
+
+  while(!field[curr_idx + 1][col_idx] && (curr_idx + 1) < FIELD_ROWS) {
+    curr_idx++;
+  }
+
+  return curr_idx - row_idx;
+}
+
+void render_ghost() {
+  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 50);
+
+  int max_distance = 1000;
+
+  for (int i = 0; i < 4; i++) {
+    int *tile = curr_piece[i];
+    int row_idx = tile[0];
+    int col_idx = tile[1];
+
+    int curr_dist = get_vertical_space(row_idx, col_idx);
+
+    if (curr_dist < max_distance) {
+      max_distance = curr_dist;
+    }
+  }
+
+  for (int i = 0; i < 4; i++) {
+    int *tile = curr_piece[i];
+    int row_idx = tile[0];
+    int col_idx = tile[1];
+    render_field_block(row_idx + max_distance, col_idx);
+  }
+}
+
 void renderField() {
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
@@ -304,41 +351,10 @@ void renderField() {
   }
 
   if (has_piece) {
-    for (int i = 0; i < 4; i++) {
-      int *tile = curr_piece[i];
-      int row_idx = tile[0];
-      int col_idx = tile[1];
+    render_piece();
 
-      render_field_block(row_idx, col_idx);
-    }
-
-    // render the ghost
     if (SHOW_GHOST) {
-      SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
-
-      int max_distance = 0;
-
-      for (int i = 0; i < 4; i++) {
-        int *tile = curr_piece[i];
-        int row_idx = tile[0];
-        int col_idx = tile[1];
-        int curr_max_idx = row_idx + 1;
-
-        while (curr_max_idx < (FIELD_ROWS - 1) && !field[curr_max_idx][col_idx]) {
-          curr_max_idx++;
-        }
-
-        if (curr_max_idx - row_idx > max_distance) {
-          max_distance = curr_max_idx - row_idx;
-        }
-      }
-
-      for (int i = 0; i < 4; i++) {
-        int *tile = curr_piece[i];
-        int row_idx = tile[0];
-        int col_idx = tile[1];
-        render_field_block(row_idx + max_distance, col_idx);
-      }
+      render_ghost();
     }
   }
 }
