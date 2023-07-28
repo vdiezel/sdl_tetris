@@ -236,12 +236,13 @@ void spawn_piece() {
       int field_block = field[m][n + 4];
       int piece_block = piece_shape[m][n];
 
-      if (piece_block && field_block) {
-        game_is_running = FALSE;
-        return;
-      }
-
       if (piece_block) {
+
+        if (field_block) {
+          game_is_running = FALSE;
+          return;
+        }
+
         curr_piece[tile_counter][0] = m;
         curr_piece[tile_counter][1] = n + 4;
         tile_counter++;
@@ -348,18 +349,21 @@ void render_preview() {
   SDL_RenderDrawRect(renderer, &preview_frame);
 
   const int (*piece_shape)[4] = get_shape(next_piece_type);
-
-  // in order to center all pieces, we need the bounding box of
-  // of the shape
+  const int *shape_size = get_shape_size(next_piece_type);
 
   for (int m = 0; m < 4; m++) {
     for (int n = 0; n < 4; n++) {
       int piece_block = piece_shape[m][n];
 
+      int x = PREVIEW_ORIGIN_X
+        + (PREVIEW_WIDTH - shape_size[0] * BLOCK_WIDTH) / 2;
+      int y = PREVIEW_ORIGIN_Y
+        + (PREVIEW_HEIGHT - shape_size[1] * BLOCK_WIDTH) / 2;
+
       if (piece_block) {
         SDL_Rect block = {
-          PREVIEW_ORIGIN_X + (n + 1) * BLOCK_WIDTH,
-          PREVIEW_ORIGIN_Y + (m + 1) * BLOCK_WIDTH,
+          x + n * BLOCK_WIDTH,
+          y + m * BLOCK_WIDTH - BLOCK_WIDTH / 3,
           BLOCK_WIDTH,
           BLOCK_WIDTH,
         };
