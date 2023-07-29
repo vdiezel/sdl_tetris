@@ -10,7 +10,7 @@ typedef struct GameState {
   int last_frame_time;
   int field[FIELD_ROWS][FIELD_COLUMNS];
 
-  // this holds the field indexes if the tiles of the current piece
+  // this holds the field indexes of the tiles of the current piece
   int curr_piece[4][2];
   PieceType piece_type;
   int curr_rot;

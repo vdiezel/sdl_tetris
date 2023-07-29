@@ -214,7 +214,7 @@ void update(GameState *state) {
 
   if (!state->has_piece) {
     spawn_piece(state);
-  } else if ((SDL_GetTicks() - state->last_gravity) > 500) {
+  } else if ((SDL_GetTicks() - state->last_gravity) > GRAVITY_TICK_INTERVAL_MS) {
     apply_gravity(state);
   }
 
@@ -227,7 +227,7 @@ void destroy(SDL_Window *window, SDL_Renderer *renderer) {
   SDL_Quit();
 }
 
-void setup(GameState *state) {
+void setup_state(GameState *state) {
   for (int i = 0; i < FIELD_ROWS; i++) {
     for (int j = 0; j < FIELD_COLUMNS; j++) {
       state->field[i][j] = 0;
@@ -243,16 +243,8 @@ void setup(GameState *state) {
   reset_current_piece(state);
 }
 
-int main() {
-  SDL_Window* window = NULL;
-  SDL_Renderer* renderer = NULL;
-
-  if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-    fprintf(stderr, "Error initializinh SDL.\n");
-    return 1;
-  }
-
-  window = SDL_CreateWindow(
+int setup_window(SDL_Window **window) {
+  *window = SDL_CreateWindow(
     NULL,
     -1,
     -1,
@@ -266,14 +258,38 @@ int main() {
     return 1;
   }
 
-  renderer = SDL_CreateRenderer(window, -1, 0);
+  return 0;
+}
+
+int setup_renderer(SDL_Window *window, SDL_Renderer **renderer) {
+  *renderer = SDL_CreateRenderer(window, -1, 0);
 
   if (!renderer) {
     fprintf(stderr, "Error creating SDL Renderer.\n");
     return 1;
   }
 
-  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+  SDL_SetRenderDrawBlendMode(*renderer, SDL_BLENDMODE_BLEND);
+
+  return 0;
+}
+
+int main() {
+  SDL_Window* window = NULL;
+  SDL_Renderer* renderer = NULL;
+
+  if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+    fprintf(stderr, "Error initializinh SDL.\n");
+    return 1;
+  }
+
+  if (setup_window(&window) != 0) {
+    return 2;
+  };
+
+  if (setup_renderer(window, &renderer) != 0) {
+    return 3;
+  };
 
   GameState state = {
     .game_is_running = TRUE,
@@ -281,7 +297,7 @@ int main() {
     .last_gravity = 0,
   };
 
-  setup(&state);
+  setup_state(&state);
 
   while (state.game_is_running) {
     process_inputs(&state);
