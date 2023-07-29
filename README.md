@@ -3,7 +3,7 @@
 A very basic tetris game using SDL2 and C.
 
 
-![tetris](https://github.com/vdiezel/sdl_tetris/assets/37934155/f7e7215e-5f45-4f17-b3fb-f9467363bcea)
+![image](https://github.com/vdiezel/sdl_tetris/assets/37934155/4829ecfb-9dc4-4e85-a0e9-9b615b6df712)
 
 
 # To build:
