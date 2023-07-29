@@ -22,9 +22,9 @@ struct Piece {
   int rotation_offsets[4][4][2];
   PieceType type;
 
-  // in order to center all pieces in the preview, we need the bounding box of
-  // of the shape within the 4x4 grid in the first position such that the shape is centered; the first index is the max width, the second the max height
-  int shape_size[2];
+  // in order to center all pieces in the preview, we need the center of the pieces
+  // in BLOCK_WIDTHS
+  float center[2];
 };
 
 const static struct Piece piece_t = {
@@ -41,7 +41,7 @@ const static struct Piece piece_t = {
     { { 1, -1}, {0, 0}, {-1,  1}, { 1,  1} },
   },
   .type = T,
-  .shape_size = {3, 3},
+  .center = {1.5, 1.5},
 };
 
 const static struct Piece piece_l = {
@@ -58,7 +58,7 @@ const static struct Piece piece_l = {
     { {1, -1}, {0, 0}, {-1, 1}, {2, 0} },
   },
   .type = L,
-  .shape_size = {3, 3},
+  .center = {1.5, 2.0},
 };
 
 const static struct Piece piece_j = {
@@ -75,7 +75,7 @@ const static struct Piece piece_j = {
     { {1, -1}, {0, 0}, {-1, 1}, {0, 2} },
   },
   .type = J,
-  .shape_size = {3, 3},
+  .center = {1.5, 2.0},
 };
 
 const static struct Piece piece_s = {
@@ -92,7 +92,7 @@ const static struct Piece piece_s = {
     { {0, 0}, {1, 1}, {0, -2}, {1, -1} },
   },
   .type = S,
-  .shape_size = {3, 3},
+  .center = {1.5, 2.0},
 };
 
 const static struct Piece piece_z = {
@@ -109,7 +109,7 @@ const static struct Piece piece_z = {
     { {-1, -1}, {0, 0}, {1, -1}, {2, 0} },
   },
   .type = Z,
-  .shape_size = {3, 3},
+  .center = {1.5, 2.0},
 };
 
 const static struct Piece piece_o = {
@@ -126,7 +126,7 @@ const static struct Piece piece_o = {
     { {0, 0}, {0, 0}, {0, 0}, {0, 0} },
   },
   .type = O,
-  .shape_size = {4, 4},
+  .center = {2.0, 2.0},
 };
 
 const static struct Piece piece_i = {
@@ -143,7 +143,7 @@ const static struct Piece piece_i = {
     { {-2, -2}, {-1, -1}, {0, 0}, {1, 1} },
   },
   .type = I,
-  .shape_size = {4, 2},
+  .center = {2.0, 1.5},
 };
 
 #endif
@@ -151,4 +151,4 @@ const static struct Piece piece_i = {
 const struct Piece* get_piece(PieceType piece_type);
 const int (*get_shape(PieceType piece_type))[4];
 const int (*get_rotation_offsets(PieceType piece_type))[4][2];
-const int *get_shape_size(PieceType piece_type);
+const float *get_center(PieceType piece_type);

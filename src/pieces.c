@@ -34,7 +34,7 @@ const int (*get_rotation_offsets(PieceType piece_type))[4][2] {
   return piece->rotation_offsets;
 }
 
-const int *get_shape_size(PieceType piece_type) {
+const float *get_center(PieceType piece_type) {
   const struct Piece* piece = get_piece(piece_type);
-  return piece->shape_size;
+  return piece->center;
 }

@@ -349,21 +349,21 @@ void render_preview() {
   SDL_RenderDrawRect(renderer, &preview_frame);
 
   const int (*piece_shape)[4] = get_shape(next_piece_type);
-  const int *shape_size = get_shape_size(next_piece_type);
+  const float *center = get_center(next_piece_type);
 
   for (int m = 0; m < 4; m++) {
     for (int n = 0; n < 4; n++) {
       int piece_block = piece_shape[m][n];
 
-      int x = PREVIEW_ORIGIN_X
-        + (PREVIEW_WIDTH - shape_size[0] * BLOCK_WIDTH) / 2;
-      int y = PREVIEW_ORIGIN_Y
-        + (PREVIEW_HEIGHT - shape_size[1] * BLOCK_WIDTH) / 2;
+      int x = PREVIEW_ORIGIN_X + PREVIEW_WIDTH / 2 +
+        - (int)(center[0] * BLOCK_WIDTH);
+      int y = PREVIEW_ORIGIN_Y + PREVIEW_HEIGHT / 2 +
+        - (int)(center[1] * BLOCK_WIDTH);
 
       if (piece_block) {
         SDL_Rect block = {
           x + n * BLOCK_WIDTH,
-          y + m * BLOCK_WIDTH - BLOCK_WIDTH / 3,
+          y + m * BLOCK_WIDTH,
           BLOCK_WIDTH,
           BLOCK_WIDTH,
         };
